@@ -21,10 +21,15 @@
 
     .container {
       width: 502px;
-      height: 270px;
-      border-radius: 24px;
-      background: linear-gradient(135deg, #1d1d1d, #2a2a2c);
-      padding: 26px;
+      /* Eliminar altura fija para que el padding funcione bien */
+      /* height: 270px; */
+      border-radius: 20px; /* Igual que top-box y bottom-box */
+      background: linear-gradient(135deg, #1d1d1d, #2a2a2c); /* Fondo original */
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: stretch;
+      padding: 16px; /* Igual margen en todos lados */
     }
 
     .top-box,
@@ -32,6 +37,7 @@
       background: linear-gradient(135deg, #232323, #262628);
       border-radius: 20px;
       box-shadow: 0 0 0 2px #262628;
+      padding: 10px 16px;
     }
 
     .top-box {
@@ -40,7 +46,7 @@
       align-items: center;
       justify-content: center;
       gap: 12px;
-      margin-bottom: 16px;
+      margin-bottom: 16px; /* separación entre top y bottom */
     }
 
     .top-box .wins,
@@ -123,7 +129,7 @@
     .game-history {
       display: flex;
       gap: 7px;
-      flex-direction: row-reverse; /* puntos de derecha a izquierda */
+      flex-direction: row-reverse;
     }
 
     .dot {
@@ -251,14 +257,25 @@
     }
 
     window.addEventListener("keydown", (e) => {
-      const key = e.key;
+      const key = e.key.toLowerCase();
 
-      if (key.toLowerCase() === "d") {
+      if (key === "r" && e.shiftKey) {
+        wins = 0;
+        losses = 0;
+        crowns = 9500;
+        fullHistory = [];
+        deleteMode = false;
+        numberBuffer = "";
+        updateDisplay();
+        return;
+      }
+
+      if (key === "d") {
         deleteMode = true;
         return;
       }
 
-      if (key.toLowerCase() === "w") {
+      if (key === "w") {
         if (deleteMode && wins > 0) {
           wins--;
           const idx = fullHistory.indexOf("win");
@@ -273,7 +290,7 @@
         return;
       }
 
-      if (key.toLowerCase() === "l") {
+      if (key === "l") {
         if (deleteMode && losses > 0) {
           losses--;
           const idx = fullHistory.indexOf("loss");
@@ -293,7 +310,7 @@
         return;
       }
 
-      if (key === "Enter") {
+      if (key === "enter") {
         if (numberBuffer) {
           const value = parseInt(numberBuffer);
           if (!isNaN(value)) {
@@ -308,25 +325,12 @@
               fullHistory.unshift("loss");
               animate(lossesSpan);
             }
+            updateDisplay();
           }
           numberBuffer = "";
-          updateDisplay();
         }
         return;
       }
-
-      if (e.shiftKey && key.toLowerCase() === "r") {
-        wins = 0;
-        losses = 0;
-        crowns = 9500;
-        fullHistory = [];
-        updateDisplay();
-        return;
-      }
-    });
-
-    window.addEventListener("keyup", (e) => {
-      if (e.key.toLowerCase() === "d") deleteMode = false;
     });
 
     updateDisplay();
