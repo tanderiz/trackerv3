@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>GameTracker V3 by Tanderiz</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #051b34;
+      font-family: "Segoe UI", "Inter", sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .container {
+      width: 502px;
+      height: 270px;
+      border-radius: 24px;
+      background: linear-gradient(135deg, #1d1d1d, #2a2a2c);
+      padding: 26px;
+    }
+
+    .top-box,
+    .bottom-box {
+      background: linear-gradient(135deg, #232323, #262628);
+      border-radius: 20px;
+      box-shadow: 0 0 0 2px #262628;
+    }
+
+    .top-box {
+      height: 84px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .top-box .wins,
+    .top-box .losses,
+    .top-box .percent,
+    .top-box .divider,
+    .top-box .crown {
+      transition: transform 0.25s ease;
+    }
+
+    .top-box .wins {
+      color: #54d381;
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .top-box .slash {
+      color: #9fa5ae;
+      font-size: 26px;
+      font-weight: 600;
+    }
+
+    .top-box .losses {
+      color: #d76969;
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .top-box .percent {
+      color: #cfcfcf;
+      font-size: 26px;
+      font-weight: 600;
+    }
+
+    .top-box .divider {
+      color: #9fa5ae;
+      font-size: 28px;
+      font-weight: 600;
+      margin-left: 4px;
+    }
+
+    .top-box .crown {
+      color: #f7cd23;
+      font-size: 28px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .bottom-box {
+      height: 126px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .bottom-box .header {
+      font-size: 20px;
+      font-weight: 700;
+      color: #d4d6da;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .bottom-box .header .pipe {
+      width: 1px;
+      height: 18px;
+      background-color: #8c8c8c;
+    }
+
+    .bottom-box .header .streak {
+      color: #d76969;
+      font-weight: 700;
+    }
+
+    .game-history {
+      display: flex;
+      gap: 7px;
+      flex-direction: row-reverse; /* puntos de derecha a izquierda */
+    }
+
+    .dot {
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      background-color: #555;
+      border: 1px solid #888;
+    }
+
+    .dot.win {
+      background-color: #1fbc58;
+      border: 1px solid #48b870;
+    }
+
+    .dot.loss {
+      background-color: #e03332;
+      border: 1px solid #e24f50;
+    }
+
+    .animate-bump {
+      animation: bump 0.3s ease;
+    }
+
+    @keyframes bump {
+      0% {
+        transform: translateY(-6px);
+      }
+      50% {
+        transform: translateY(3px);
+      }
+      100% {
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="top-box">
+      <span class="wins" id="wins">0W</span>
+      <span class="slash">/</span>
+      <span class="losses" id="losses">0L</span>
+      <span class="percent" id="winrate">(0%)</span>
+      <span class="divider">|</span>
+      <span class="crown">👑 <span id="crowns">9500</span></span>
+    </div>
+
+    <div class="bottom-box">
+      <div class="header">
+        <span>LAST 10 GAMES</span>
+        <div class="pipe"></div>
+        <span class="streak" id="streak">0 WIN STREAK</span>
+      </div>
+      <div class="game-history" id="last10"></div>
+    </div>
+  </div>
+
+  <script>
+    let wins = parseInt(localStorage.getItem("wins")) || 0;
+    let losses = parseInt(localStorage.getItem("losses")) || 0;
+    let crowns = parseInt(localStorage.getItem("crowns")) || 9500;
+    let fullHistory = JSON.parse(localStorage.getItem("fullHistory")) || [];
+
+    let deleteMode = false;
+    let numberBuffer = "";
+
+    const winsSpan = document.getElementById("wins");
+    const lossesSpan = document.getElementById("losses");
+    const winrateSpan = document.getElementById("winrate");
+    const crownSpan = document.getElementById("crowns");
+    const streakSpan = document.getElementById("streak");
+    const last10Container = document.getElementById("last10");
+
+    function animate(element) {
+      element.classList.remove("animate-bump");
+      void element.offsetWidth;
+      element.classList.add("animate-bump");
+    }
+
+    function saveToStorage() {
+      localStorage.setItem("wins", wins);
+      localStorage.setItem("losses", losses);
+      localStorage.setItem("crowns", crowns);
+      localStorage.setItem("fullHistory", JSON.stringify(fullHistory));
+    }
+
+    function updateDisplay() {
+      winsSpan.textContent = `${wins}W`;
+      lossesSpan.textContent = `${losses}L`;
+
+      const total = wins + losses;
+      const winrate = total > 0 ? ((wins / total) * 100).toFixed(1) : 0;
+      winrateSpan.textContent = `(${winrate}%)`;
+      crownSpan.textContent = `${crowns}`;
+
+      const last10 = fullHistory.slice(0, 10);
+      last10Container.innerHTML = "";
+      for (let i = 0; i < 10; i++) {
+        const dot = document.createElement("div");
+        dot.className = "dot";
+        if (last10[i]) dot.classList.add(last10[i]);
+        last10Container.appendChild(dot);
+      }
+
+      let streakType = fullHistory[0];
+      let streakCount = 0;
+      for (let i = 0; i < fullHistory.length; i++) {
+        if (fullHistory[i] === streakType) streakCount++;
+        else break;
+      }
+
+      if (streakType === "win") {
+        streakSpan.textContent = `${streakCount} WIN STREAK`;
+        streakSpan.style.color = "#54d381";
+      } else if (streakType === "loss") {
+        streakSpan.textContent = `${streakCount} LOSS STREAK`;
+        streakSpan.style.color = "#d76969";
+      } else {
+        streakSpan.textContent = `0 WIN STREAK`;
+        streakSpan.style.color = "#888";
+      }
+
+      saveToStorage();
+    }
+
+    window.addEventListener("keydown", (e) => {
+      const key = e.key;
+
+      if (key.toLowerCase() === "d") {
+        deleteMode = true;
+        return;
+      }
+
+      if (key.toLowerCase() === "w") {
+        if (deleteMode && wins > 0) {
+          wins--;
+          const idx = fullHistory.indexOf("win");
+          if (idx !== -1) fullHistory.splice(idx, 1);
+          animate(winsSpan);
+        } else {
+          wins++;
+          fullHistory.unshift("win");
+          animate(winsSpan);
+        }
+        updateDisplay();
+        return;
+      }
+
+      if (key.toLowerCase() === "l") {
+        if (deleteMode && losses > 0) {
+          losses--;
+          const idx = fullHistory.indexOf("loss");
+          if (idx !== -1) fullHistory.splice(idx, 1);
+          animate(lossesSpan);
+        } else {
+          losses++;
+          fullHistory.unshift("loss");
+          animate(lossesSpan);
+        }
+        updateDisplay();
+        return;
+      }
+
+      if (/[-0-9]/.test(key)) {
+        numberBuffer += key;
+        return;
+      }
+
+      if (key === "Enter") {
+        if (numberBuffer) {
+          const value = parseInt(numberBuffer);
+          if (!isNaN(value)) {
+            crowns += value;
+            animate(crownSpan);
+            if (value > 0) {
+              wins++;
+              fullHistory.unshift("win");
+              animate(winsSpan);
+            } else if (value < 0) {
+              losses++;
+              fullHistory.unshift("loss");
+              animate(lossesSpan);
+            }
+          }
+          numberBuffer = "";
+          updateDisplay();
+        }
+        return;
+      }
+
+      if (e.shiftKey && key.toLowerCase() === "r") {
+        wins = 0;
+        losses = 0;
+        crowns = 9500;
+        fullHistory = [];
+        updateDisplay();
+        return;
+      }
+    });
+
+    window.addEventListener("keyup", (e) => {
+      if (e.key.toLowerCase() === "d") deleteMode = false;
+    });
+
+    updateDisplay();
+  </script>
+</body>
+</html>
